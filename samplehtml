@@ -1,0 +1,131 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract StudentRecords {
+    // Define the Student structure
+    struct Student {
+        string name;
+        uint8 age;
+        uint256 studentId;
+        uint8[] grades;
+        bool isActive;
+    }
+    
+    // Array to store all students
+    Student[] public students;
+    
+    // Mapping from student ID to position in the array
+    // We add 1 to the index so that 0 means "not found"
+    mapping(uint256 => uint256) public studentIdToIndex;
+    
+    // Track how many active students we have
+    uint256 public totalActiveStudents;
+    
+    // Add a new student to the records
+    function addStudent(string memory _name, uint8 _age, uint256 _studentId, uint8[] memory _grades) public {
+        // Make sure this ID doesn't already exist
+        require(studentIdToIndex[_studentId] == 0, "Student ID already exists");
+        
+        // Add student to array
+        students.push(Student({
+            name: _name,
+            age: _age,
+            studentId: _studentId,
+            grades: _grades,
+            isActive: true
+        }));
+        
+        // Store the position in our mapping (adding 1 to the index)
+        studentIdToIndex[_studentId] = students.length;
+        
+        // Increase our counter of active students
+        totalActiveStudents++;
+    }
+    
+    // Get student information by ID
+    function getStudent(uint256 _studentId) public view returns (
+        string memory name,
+        uint8 age,
+        uint8[] memory grades,
+        bool isActive
+    ) {
+        // Get the student's position from the mapping
+        uint256 index = studentIdToIndex[_studentId];
+        
+        // Check if student exists
+        require(index > 0, "Student not found");
+        
+        // Get the actual index in the array (subtract 1)
+        Student storage student = students[index - 1];
+        
+        // Return all the student information
+        return (student.name, student.age, student.grades, student.isActive);
+    }
+    
+    // Update student information
+    function updateStudent(uint256 _studentId, string memory _name, uint8 _age, uint8[] memory _grades) public {
+        // Find the student
+        uint256 index = studentIdToIndex[_studentId];
+        require(index > 0, "Student not found");
+        
+        // Get a reference to the student in storage so we can modify it
+        Student storage student = students[index - 1];
+        
+        // Make sure student is active
+        require(student.isActive, "Cannot update inactive student");
+        
+        // Update the information
+        student.name = _name;
+        student.age = _age;
+        student.grades = _grades;
+    }
+    
+    // Mark a student as inactive (remove from active list)
+    function removeStudent(uint256 _studentId) public {
+        // Find the student
+        uint256 index = studentIdToIndex[_studentId];
+        require(index > 0, "Student not found");
+        
+        // Get the student
+        Student storage student = students[index - 1];
+        
+        // Check if already inactive
+        require(student.isActive, "Student already inactive");
+        
+        // Mark as inactive
+        student.isActive = false;
+        
+        // Decrease our active counter
+        totalActiveStudents--;
+    }
+    
+    // Get the total number of students (active and inactive)
+    function getTotalStudents() public view returns (uint256) {
+        return students.length;
+    }
+    
+    // Get the total number of active students
+    function getTotalActiveStudents() public view returns (uint256) {
+        return totalActiveStudents;
+    }
+    
+    // Get a list of all active student IDs
+    function getAllActiveStudentIds() public view returns (uint256[] memory) {
+        // Create an array to hold active student IDs
+        uint256[] memory activeIds = new uint256[](totalActiveStudents);
+        
+        // Counter for filling the array
+        uint256 counter = 0;
+        
+        // Loop through all students
+        for (uint256 i = 0; i < students.length; i++) {
+            // If student is active, add their ID to our array
+            if (students[i].isActive) {
+                activeIds[counter] = students[i].studentId;
+                counter++;
+            }
+        }
+        
+        return activeIds;
+    }
+}
